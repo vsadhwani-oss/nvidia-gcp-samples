@@ -30,6 +30,20 @@ Demonstrates Dynamo's KV-aware routing advantage over standalone SGLang for shar
 --page-size 64
 ```
 
+### KV Cache Sizing
+
+The key memory trade-off: `--context-length 16384` limits the token space per request, giving KV cache room for concurrency.
+
+| Context length | Max KV per request | Concurrent slots in 2.6 GB |
+|---|---|---|
+| 131072 (native) | 131K × 35 KB = **4.5 GB** | < 1 (won't fit) |
+| **16384 (our setting)** | 16K × 35 KB = **560 MB** | ~4–5 slots |
+| 8192 (aggressive) | 8K × 35 KB = **280 MB** | ~9 slots |
+
+- `--mem-fraction-static 0.97` maximizes the fraction of GPU memory allocated for model weights + KV cache
+- `--context-length 16384` caps total tokens (ISL+OSL) per request, preventing SGLang from reserving memory for 128K sequences it'll never use
+- Our workload (1K ISL + 8K OSL ≈ 9K tokens) fits well within 16K, so no functional loss
+
 ## Benchmark Parameters
 
 | Parameter | Value | Rationale |

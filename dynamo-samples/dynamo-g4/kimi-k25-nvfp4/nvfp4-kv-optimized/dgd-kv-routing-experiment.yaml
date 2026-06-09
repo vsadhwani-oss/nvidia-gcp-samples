@@ -243,6 +243,15 @@ spec:
 
             # Engine flags match standalone-sglang-kimi-k25-nvfp4.yaml exactly.
             # Radix cache is enabled (default) so prefix caching works.
+            #
+            # KV cache sizing:
+            #   - Model weights consume ~90.5 GB/GPU, leaving ~2.6 GB for KV cache
+            #   - KV dtype fp8_e4m3 with MLA ≈ 35 KB/token
+            #   - context-length 16384 caps max tokens per request (ISL+OSL),
+            #     limiting KV allocation to ~560 MB/request vs ~4.5 GB at native 128K
+            #   - This trade-off sacrifices long-context for concurrency headroom:
+            #     ~4-5 concurrent request slots in 2.6 GB instead of <1 at 128K
+            #   - mem-fraction-static 0.97 maximizes KV cache allocation
             exec python3 -m dynamo.sglang \
               --model-path "$MODEL_DIR" \
               --served-model-name "$MODEL_NAME" \
